@@ -1,0 +1,10 @@
+[package]
+name = "nomad-rs-api"
+version = "0.0.1-alpha.1"
+edition = "2024"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0.219", features = ["derive"] }
+thiserror = { version = "2.0.17" }
+time = { version = "0.3.41", features = ["serde-well-known"]}
