@@ -1,7 +1,11 @@
 [package]
-name = "nomad-rs-api"
-version = "0.0.1-alpha.1"
+description = "Provides an ergonomic, type-safe interface for interacting with the HashiCorp Nomad API (https://developer.hashicorp.com/nomad)"
 edition = "2024"
+license = "Apache-2.0"
+name = "nomad-rs-api"
+readme = "README.md"
+repository = "https://github.com/rasorp/nomad-rs-api"
+version = "0.0.1-alpha.1"
 
 [dependencies]
 reqwest = { version = "0.11", features = ["json"] }
