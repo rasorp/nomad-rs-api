@@ -162,6 +162,46 @@ impl Nomad {
         self.send_without_response(req).await
     }
 
+    /// Get an ACL token by its accessor ID.
+    ///
+    /// # Arguments
+    /// * `accessor_id` - The accessor ID of the ACL token to retrieve.
+    /// * `opts` - Optional query options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing the ACL token object or an error if the request
+    /// fails.
+    pub async fn acl_token_get(
+        &self,
+        accessor_id: &str,
+        opts: Option<QueryOptions>,
+    ) -> Result<ACLToken, ClientError> {
+        let req = self.set_request_query_options(
+            self.build_request(Method::GET, &format!("/v1/acl/token/{}", accessor_id)),
+            &opts.unwrap_or_default(),
+        );
+        self.send_with_response::<ACLToken>(req).await
+    }
+
+    /// Get an ACL token for the token used to authenticate the request.
+    ///
+    /// # Arguments
+    /// * `opts` - Optional query options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing the ACL token object or an error if the request
+    /// fails.
+    pub async fn acl_token_self_get(
+        &self,
+        opts: Option<QueryOptions>,
+    ) -> Result<ACLToken, ClientError> {
+        let req = self.set_request_query_options(
+            self.build_request(Method::GET, "/v1/acl/token/self"),
+            &opts.unwrap_or_default(),
+        );
+        self.send_with_response::<ACLToken>(req).await
+    }
+
     /// Get the list of ACL tokens in the Nomad cluster.
     ///
     /// # Arguments
