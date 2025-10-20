@@ -16,6 +16,33 @@ impl ACLTokenBootstrapRequest {
     }
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct ACLTokenCreateRequest {
+    pub name: Option<String>,
+    #[serde(rename = "Type")]
+    pub token_type: String,
+    pub global: bool,
+    pub policies: Option<Vec<String>>,
+    pub roles: Option<Vec<ACLTokenRoleLink>>,
+    pub expiration_time: Option<String>,
+    pub expiration_ttl: Option<i64>,
+}
+
+impl ACLTokenCreateRequest {
+    pub fn new(token_type: String, global: bool) -> Self {
+        ACLTokenCreateRequest {
+            token_type,
+            global,
+            name: None,
+            policies: None,
+            roles: None,
+            expiration_time: None,
+            expiration_ttl: None,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ACLToken {
@@ -23,7 +50,7 @@ pub struct ACLToken {
     pub accessor_id: String,
     #[serde(rename = "SecretID")]
     pub secret_id: String,
-    pub name: String,
+    pub name: Option<String>,
     #[serde(rename = "Type")]
     pub token_type: String,
     pub policies: Option<Vec<String>>,
@@ -75,8 +102,8 @@ impl Nomad {
     /// * `opts` - Optional write options to use for the request.
     ///
     /// # Returns
-    /// A `Result` containing a the created ACL bootstrap token object or an
-    /// error if the request fails.
+    /// A `Result` containing the created ACL bootstrap token object or an error
+    /// if the request fails.
     pub async fn acl_token_bootstrap(
         &self,
         acl_token_bootstrap_request: Option<&ACLTokenBootstrapRequest>,
@@ -88,6 +115,30 @@ impl Nomad {
                 &opts.unwrap_or_default(),
             )
             .json(&acl_token_bootstrap_request);
+        self.send_with_response(req).await
+    }
+
+    /// Create an ACL token.
+    ///
+    /// # Arguments
+    /// * `acl_token_create_request` - The request object that defines the ACL
+    ///   token that should be created.
+    /// * `opts` - Optional write options to use for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing the created ACL token object or an error if the
+    /// request fails.
+    pub async fn acl_token_create(
+        &self,
+        acl_token_create_request: &ACLTokenCreateRequest,
+        opts: Option<WriteOptions>,
+    ) -> Result<ACLToken, ClientError> {
+        let req = self
+            .set_request_write_options(
+                self.build_request(Method::POST, "/v1/acl/token"),
+                &opts.unwrap_or_default(),
+            )
+            .json(&acl_token_create_request);
         self.send_with_response(req).await
     }
 
