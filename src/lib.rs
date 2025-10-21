@@ -1,6 +1,8 @@
 pub mod acl_policy;
 pub mod acl_token;
+pub mod allocation;
 pub mod deployment;
+pub mod evaluation;
 pub mod namespace;
 pub mod node_pool;
 pub mod option;
