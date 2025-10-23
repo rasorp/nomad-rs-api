@@ -26,13 +26,15 @@ let client = Nomad::new(config);
 ```
 
 ### Query and Write Options
-The query and write options can be easily built and modified before making a request:
+The query and write options can be easily built before making a request:
 ```rust
 use nomad_rs_api::{option};
 
-let mut query_opts = option::QueryOptions::new();
-query_opts.namespace = Some("platform".to_string());
+let query_opts = option::QueryOptions::new()
+    .with_namespace("platform".to_string())
+    .with_auth_token("auth_token".to_string());
 
-let mut write_opts = option::WriteOptions::new();
-write_opts.namespace = Some("platform".to_string());
+let write_opts = option::WriteOptions::new()
+    .with_namespace("platform".to_string())
+    .with_auth_token("auth_token".to_string());
 ```
