@@ -54,7 +54,17 @@ pub struct JobACL {
     pub task: String,
 }
 
-impl Nomad {
+pub struct Endpoint<'a> {
+    client: &'a Nomad,
+}
+
+impl<'a> Endpoint<'a> {
+    /// Create a new `Endpoint` with the given `Nomad` client to interact with
+    /// the ACL policy endpoints.
+    pub fn new(client: &'a Nomad) -> Self {
+        Self { client }
+    }
+
     /// Create a new ACL policy in the Nomad cluster. This can also be used to
     /// update an existing ACL policy by providing the same name.
     ///
@@ -64,18 +74,20 @@ impl Nomad {
     ///
     /// # Returns
     /// A `Result` indicating success or failure of the operation.
-    pub async fn create_acl_policy(
+    pub async fn create(
         &self,
         policy: &ACLPolicy,
         opts: Option<WriteOptions>,
     ) -> Result<(), ClientError> {
         let req = self
+            .client
             .set_request_write_options(
-                self.build_request(Method::POST, &format!("/v1/acl/policy/{}", policy.name)),
+                self.client
+                    .build_request(Method::POST, &format!("/v1/acl/policy/{}", policy.name)),
                 &opts.unwrap_or_default(),
             )
             .json(policy);
-        self.send_without_response(req).await
+        self.client.send_without_response(req).await
     }
 
     /// Delete an ACL policy by name.
@@ -86,16 +98,13 @@ impl Nomad {
     ///
     /// # Returns
     /// A `Result` indicating success or failure of the deletion operation.
-    pub async fn delete_acl_policy(
-        &self,
-        name: &str,
-        opts: Option<WriteOptions>,
-    ) -> Result<(), ClientError> {
-        let req = self.set_request_write_options(
-            self.build_request(Method::DELETE, &format!("/v1/acl/policy/{}", name)),
+    pub async fn delete(&self, name: &str, opts: Option<WriteOptions>) -> Result<(), ClientError> {
+        let req = self.client.set_request_write_options(
+            self.client
+                .build_request(Method::DELETE, &format!("/v1/acl/policy/{}", name)),
             &opts.unwrap_or_default(),
         );
-        self.send_without_response(req).await
+        self.client.send_without_response(req).await
     }
 
     /// Get the ACL policy with the specified name.
@@ -107,16 +116,38 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing the ACL policy object or an error if the request
     /// fails.
-    pub async fn get_acl_policy(
+    pub async fn get(
         &self,
         name: &str,
         opts: Option<QueryOptions>,
     ) -> Result<ACLPolicy, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, &format!("/v1/acl/policy/{}", name)),
+        let req = self.client.set_request_query_options(
+            self.client
+                .build_request(Method::GET, &format!("/v1/acl/policy/{}", name)),
             &opts.unwrap_or_default(),
         );
-        self.send_with_response::<ACLPolicy>(req).await
+        self.client.send_with_response::<ACLPolicy>(req).await
+    }
+
+    /// Get the list of ACL policies in the Nomad cluster.
+    ///
+    /// # Arguments
+    /// * `opts` - Optional query options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing a vector of `ACLPolicyStub` objects or an error if
+    /// the request fails.
+    pub async fn list(
+        &self,
+        opts: Option<QueryOptions>,
+    ) -> Result<Vec<ACLPolicyStub>, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(Method::GET, "/v1/acl/policies"),
+            &opts.unwrap_or_default(),
+        );
+        self.client
+            .send_with_response::<Vec<ACLPolicyStub>>(req)
+            .await
     }
 
     /// Get a list of the ACL policies that are associated with the caller ACL
@@ -128,33 +159,17 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing a vector of `ACLPolicyStub` objects or an error if
     /// the request fails.
-    pub async fn get_acl_policy_self(
+    pub async fn list_self(
         &self,
         opts: Option<QueryOptions>,
     ) -> Result<Vec<ACLPolicyStub>, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/acl/policy/self"),
+        let req = self.client.set_request_query_options(
+            self.client
+                .build_request(Method::GET, "/v1/acl/policy/self"),
             &opts.unwrap_or_default(),
         );
-        self.send_with_response::<Vec<ACLPolicyStub>>(req).await
-    }
-
-    /// Get the list of ACL policies in the Nomad cluster.
-    ///
-    /// # Arguments
-    /// * `opts` - Optional query options for the request.
-    ///
-    /// # Returns
-    /// A `Result` containing a vector of `ACLPolicyStub` objects or an error if
-    /// the request fails.
-    pub async fn list_acl_policies(
-        &self,
-        opts: Option<QueryOptions>,
-    ) -> Result<Vec<ACLPolicyStub>, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/acl/policies"),
-            &opts.unwrap_or_default(),
-        );
-        self.send_with_response::<Vec<ACLPolicyStub>>(req).await
+        self.client
+            .send_with_response::<Vec<ACLPolicyStub>>(req)
+            .await
     }
 }

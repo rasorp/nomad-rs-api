@@ -69,44 +69,15 @@ pub struct DeploymentPromoteRequest {
     pub groups: Option<Vec<String>>,
 }
 
-impl Nomad {
-    /// Get the list of deployments in the Nomad cluster.
-    ///
-    /// # Arguments
-    /// * `opts` - Optional query options for the request.
-    ///
-    /// # Returns
-    /// A `Result` containing a vector of deployments or an error if the request
-    /// fails.
-    pub async fn get_deployments(
-        &self,
-        opts: Option<QueryOptions>,
-    ) -> Result<Vec<Deployment>, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/deployments"),
-            &opts.unwrap_or_default(),
-        );
-        self.send_with_response::<Vec<Deployment>>(req).await
-    }
+pub struct Endpoint<'a> {
+    client: &'a Nomad,
+}
 
-    /// Get a specific deployment by its ID.
-    ///
-    /// # Arguments
-    /// * `id` - The ID of the deployment to retrieve.
-    /// * `opts` - Optional query options for the request.
-    ///
-    /// # Returns
-    /// A `Result` containing the deployment or an error if the request fails.
-    pub async fn get_deployment(
-        &self,
-        id: &str,
-        opts: Option<QueryOptions>,
-    ) -> Result<Deployment, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, &format!("/v1/deployment/{}", id)),
-            &opts.unwrap_or_default(),
-        );
-        self.send_with_response::<Deployment>(req).await
+impl<'a> Endpoint<'a> {
+    /// Create a new `Endpoint` with the given `Nomad` client to interact with
+    /// the deployment endpoints.
+    pub fn new(client: &'a Nomad) -> Self {
+        Self { client }
     }
 
     /// Fail a deployment by its ID.
@@ -118,16 +89,88 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing the deployment update response or an error if the
     /// request fails.
-    pub async fn fail_deployment(
+    pub async fn fail(
         &self,
         id: &str,
         opts: Option<WriteOptions>,
     ) -> Result<DeploymentUpdateResponse, ClientError> {
-        let req = self.set_request_write_options(
-            self.build_request(Method::POST, &format!("/v1/deployment/fail/{}", id)),
+        let req = self.client.set_request_write_options(
+            self.client
+                .build_request(Method::POST, &format!("/v1/deployment/fail/{}", id)),
             &opts.unwrap_or_default(),
         );
-        self.send_with_response::<DeploymentUpdateResponse>(req)
+        self.client
+            .send_with_response::<DeploymentUpdateResponse>(req)
+            .await
+    }
+
+    /// Get a specific deployment by its ID.
+    ///
+    /// # Arguments
+    /// * `id` - The ID of the deployment to retrieve.
+    /// * `opts` - Optional query options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing the deployment or an error if the request fails.
+    pub async fn get(
+        &self,
+        id: &str,
+        opts: Option<QueryOptions>,
+    ) -> Result<Deployment, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client
+                .build_request(Method::GET, &format!("/v1/deployment/{}", id)),
+            &opts.unwrap_or_default(),
+        );
+        self.client.send_with_response::<Deployment>(req).await
+    }
+
+    /// Get the list of deployments in the Nomad cluster.
+    ///
+    /// # Arguments
+    /// * `opts` - Optional query options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing a vector of deployments or an error if the request
+    /// fails.
+    pub async fn list(&self, opts: Option<QueryOptions>) -> Result<Vec<Deployment>, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(Method::GET, "/v1/deployments"),
+            &opts.unwrap_or_default(),
+        );
+        self.client.send_with_response::<Vec<Deployment>>(req).await
+    }
+
+    /// Promote a deployment to the next stage.
+    ///
+    /// # Arguments
+    /// * `deployment_promote_request` - The request containing the deployment
+    ///   ID, all flag, and optional groups to promote.
+    /// * `opts` - Optional write options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing the deployment update response or an error if the
+    /// request fails.
+    pub async fn promote(
+        &self,
+        deployment_promote_request: DeploymentPromoteRequest,
+        opts: Option<WriteOptions>,
+    ) -> Result<DeploymentUpdateResponse, ClientError> {
+        let req = self
+            .client
+            .set_request_write_options(
+                self.client.build_request(
+                    Method::POST,
+                    &format!(
+                        "/v1/deployment/promote/{}",
+                        deployment_promote_request.deployment_id
+                    ),
+                ),
+                &opts.unwrap_or_default(),
+            )
+            .json(&deployment_promote_request);
+        self.client
+            .send_with_response::<DeploymentUpdateResponse>(req)
             .await
     }
 
@@ -141,14 +184,15 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing the deployment update response or an error if the
     /// request fails.
-    pub async fn set_deployment_pause(
+    pub async fn set_pause(
         &self,
         deployment_pause_request: DeploymentPauseRequest,
         opts: Option<WriteOptions>,
     ) -> Result<DeploymentUpdateResponse, ClientError> {
         let req = self
+            .client
             .set_request_write_options(
-                self.build_request(
+                self.client.build_request(
                     Method::POST,
                     &format!(
                         "/v1/deployment/progress/{}",
@@ -158,38 +202,8 @@ impl Nomad {
                 &opts.unwrap_or_default(),
             )
             .json(&deployment_pause_request);
-        self.send_with_response::<DeploymentUpdateResponse>(req)
-            .await
-    }
-
-    /// Promote a deployment to the next stage.
-    ///
-    /// # Arguments
-    /// * `deployment_promote_request` - The request containing the deployment
-    ///   ID, all flag, and optional groups to promote.
-    /// * `opts` - Optional write options for the request.
-    ///
-    /// # Returns
-    /// A `Result` containing the deployment update response or an error if the
-    /// request fails.
-    pub async fn deployment_promote(
-        &self,
-        deployment_promote_request: DeploymentPromoteRequest,
-        opts: Option<WriteOptions>,
-    ) -> Result<DeploymentUpdateResponse, ClientError> {
-        let req = self
-            .set_request_write_options(
-                self.build_request(
-                    Method::POST,
-                    &format!(
-                        "/v1/deployment/promote/{}",
-                        deployment_promote_request.deployment_id
-                    ),
-                ),
-                &opts.unwrap_or_default(),
-            )
-            .json(&deployment_promote_request);
-        self.send_with_response::<DeploymentUpdateResponse>(req)
+        self.client
+            .send_with_response::<DeploymentUpdateResponse>(req)
             .await
     }
 }

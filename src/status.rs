@@ -2,24 +2,29 @@ use crate::option::QueryOptions;
 use crate::{ClientError, Nomad};
 use reqwest::Method;
 
-impl Nomad {
-    /// Get the current leader of the Nomad cluster.
-    ///
+pub struct Endpoint<'a> {
+    client: &'a Nomad,
+}
+
+impl<'a> Endpoint<'a> {
+    /// Create a new `Endpoint` with the given `Nomad` client to interact with
+    /// the status endpoints.
+    pub fn new(client: &'a Nomad) -> Self {
+        Self { client }
+    }
+
     /// # Arguments
     /// `opts`: Optional query options for the request.
     ///
     /// # Returns
     /// A `Result` containing the leader's address as a `String` or an error if
     /// the request fails.
-    pub async fn get_status_leader(
-        &self,
-        opts: Option<QueryOptions>,
-    ) -> Result<String, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/status/leader"),
+    pub async fn get_leader(&self, opts: Option<QueryOptions>) -> Result<String, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(Method::GET, "/v1/status/leader"),
             &opts.unwrap_or_default(),
         );
-        self.send_with_response::<String>(req).await
+        self.client.send_with_response::<String>(req).await
     }
 
     /// Get the list of peers in the Nomad cluster.
@@ -27,8 +32,8 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing a vector of peer addresses as `String`s or an
     /// error if the request fails.
-    pub async fn get_status_peers(&self) -> Result<Vec<String>, ClientError> {
-        let req = self.build_request(Method::GET, "/v1/status/peers");
-        self.send_with_response::<Vec<String>>(req).await
+    pub async fn list_peers(&self) -> Result<Vec<String>, ClientError> {
+        let req = self.client.build_request(Method::GET, "/v1/status/peers");
+        self.client.send_with_response::<Vec<String>>(req).await
     }
 }

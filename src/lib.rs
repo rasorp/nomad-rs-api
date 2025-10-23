@@ -183,6 +183,51 @@ impl Nomad {
             Err(err) => Err(ClientError::NetworkError(err.to_string())),
         }
     }
+
+    /// Get access to the ACL Policy endpoint methods.
+    pub fn acl_policy(&self) -> acl_policy::Endpoint<'_> {
+        acl_policy::Endpoint::new(self)
+    }
+
+    /// Get access to the ACL Token endpoint methods.
+    pub fn acl_token(&self) -> acl_token::Endpoint<'_> {
+        acl_token::Endpoint::new(self)
+    }
+
+    /// Get access to the Deployment endpoint methods.
+    pub fn deployment(&self) -> deployment::Endpoint<'_> {
+        deployment::Endpoint::new(self)
+    }
+
+    /// Get access to the Evaluation endpoint methods.
+    pub fn evaluation(&self) -> evaluation::Endpoint<'_> {
+        evaluation::Endpoint::new(self)
+    }
+
+    /// Get access to the Namespace endpoint methods.
+    pub fn namespace(&self) -> namespace::Endpoint<'_> {
+        namespace::Endpoint::new(self)
+    }
+
+    /// Get access to the Node Pool endpoint methods.
+    pub fn node_pool(&self) -> node_pool::Endpoint<'_> {
+        node_pool::Endpoint::new(self)
+    }
+
+    /// Get access to the Region endpoint methods.
+    pub fn region(&self) -> region::Endpoint<'_> {
+        region::Endpoint::new(self)
+    }
+
+    /// Get access to the Service endpoint methods.
+    pub fn service(&self) -> service::Endpoint<'_> {
+        service::Endpoint::new(self)
+    }
+
+    /// Get access to the Status endpoint methods.
+    pub fn status(&self) -> status::Endpoint<'_> {
+        status::Endpoint::new(self)
+    }
 }
 
 #[derive(Debug)]

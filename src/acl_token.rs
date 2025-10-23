@@ -93,7 +93,17 @@ pub struct ACLTokenRoleLink {
     pub name: String,
 }
 
-impl Nomad {
+pub struct Endpoint<'a> {
+    client: &'a Nomad,
+}
+
+impl<'a> Endpoint<'a> {
+    /// Create a new `Endpoint` with the given `Nomad` client to interact with
+    /// the ACL token endpoints.
+    pub fn new(client: &'a Nomad) -> Self {
+        Self { client }
+    }
+
     /// Bootstrap the ACL subsystem.
     ///
     /// # Arguments
@@ -104,18 +114,19 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing the created ACL bootstrap token object or an error
     /// if the request fails.
-    pub async fn acl_token_bootstrap(
+    pub async fn bootstrap(
         &self,
         acl_token_bootstrap_request: Option<&ACLTokenBootstrapRequest>,
         opts: Option<WriteOptions>,
     ) -> Result<ACLToken, ClientError> {
         let req = self
+            .client
             .set_request_write_options(
-                self.build_request(Method::POST, "/v1/acl/bootstrap"),
+                self.client.build_request(Method::POST, "/v1/acl/bootstrap"),
                 &opts.unwrap_or_default(),
             )
             .json(&acl_token_bootstrap_request);
-        self.send_with_response(req).await
+        self.client.send_with_response(req).await
     }
 
     /// Create an ACL token.
@@ -128,18 +139,19 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing the created ACL token object or an error if the
     /// request fails.
-    pub async fn acl_token_create(
+    pub async fn create(
         &self,
         acl_token_create_request: &ACLTokenCreateRequest,
         opts: Option<WriteOptions>,
     ) -> Result<ACLToken, ClientError> {
         let req = self
+            .client
             .set_request_write_options(
-                self.build_request(Method::POST, "/v1/acl/token"),
+                self.client.build_request(Method::POST, "/v1/acl/token"),
                 &opts.unwrap_or_default(),
             )
             .json(&acl_token_create_request);
-        self.send_with_response(req).await
+        self.client.send_with_response(req).await
     }
 
     /// Delete an ACL token by its accessor ID.
@@ -150,16 +162,17 @@ impl Nomad {
     ///
     /// # Returns
     /// A `Result` indicating success or failure of the operation.
-    pub async fn acl_token_delete(
+    pub async fn delete(
         &self,
         accessor_id: &str,
         opts: Option<WriteOptions>,
     ) -> Result<(), ClientError> {
-        let req = self.set_request_write_options(
-            self.build_request(Method::DELETE, &format!("/v1/acl/token/{}", accessor_id)),
+        let req = self.client.set_request_write_options(
+            self.client
+                .build_request(Method::DELETE, &format!("/v1/acl/token/{}", accessor_id)),
             &opts.unwrap_or_default(),
         );
-        self.send_without_response(req).await
+        self.client.send_without_response(req).await
     }
 
     /// Get an ACL token by its accessor ID.
@@ -171,16 +184,17 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing the ACL token object or an error if the request
     /// fails.
-    pub async fn acl_token_get(
+    pub async fn get(
         &self,
         accessor_id: &str,
         opts: Option<QueryOptions>,
     ) -> Result<ACLToken, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, &format!("/v1/acl/token/{}", accessor_id)),
+        let req = self.client.set_request_query_options(
+            self.client
+                .build_request(Method::GET, &format!("/v1/acl/token/{}", accessor_id)),
             &opts.unwrap_or_default(),
         );
-        self.send_with_response::<ACLToken>(req).await
+        self.client.send_with_response::<ACLToken>(req).await
     }
 
     /// Get an ACL token for the token used to authenticate the request.
@@ -191,15 +205,12 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing the ACL token object or an error if the request
     /// fails.
-    pub async fn acl_token_self_get(
-        &self,
-        opts: Option<QueryOptions>,
-    ) -> Result<ACLToken, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/acl/token/self"),
+    pub async fn get_self(&self, opts: Option<QueryOptions>) -> Result<ACLToken, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(Method::GET, "/v1/acl/token/self"),
             &opts.unwrap_or_default(),
         );
-        self.send_with_response::<ACLToken>(req).await
+        self.client.send_with_response::<ACLToken>(req).await
     }
 
     /// Get the list of ACL tokens in the Nomad cluster.
@@ -210,14 +221,13 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing a vector of `ACLTokenStub` objects or an error if
     /// the request fails.
-    pub async fn acl_tokens_list(
-        &self,
-        opts: Option<QueryOptions>,
-    ) -> Result<Vec<ACLTokenStub>, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/acl/tokens"),
+    pub async fn list(&self, opts: Option<QueryOptions>) -> Result<Vec<ACLTokenStub>, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(Method::GET, "/v1/acl/tokens"),
             &opts.unwrap_or_default(),
         );
-        self.send_with_response::<Vec<ACLTokenStub>>(req).await
+        self.client
+            .send_with_response::<Vec<ACLTokenStub>>(req)
+            .await
     }
 }

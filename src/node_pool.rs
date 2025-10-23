@@ -35,53 +35,59 @@ pub struct NodePoolSchedulerConfiguration {
     pub memory_oversubscription_enabled: Option<bool>,
 }
 
-impl Nomad {
-    pub async fn list_node_pools(
-        &self,
-        opts: Option<QueryOptions>,
-    ) -> Result<Vec<NodePool>, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/node/pools"),
-            &opts.unwrap_or_default(),
-        );
-        self.send_with_response::<Vec<NodePool>>(req).await
+pub struct Endpoint<'a> {
+    client: &'a Nomad,
+}
+
+impl<'a> Endpoint<'a> {
+    /// Create a new `Endpoint` with the given `Nomad` client to interact with
+    /// the node pool endpoints.
+    pub fn new(client: &'a Nomad) -> Self {
+        Self { client }
     }
 
-    pub async fn get_node_pool(
-        &self,
-        name: &str,
-        opts: Option<QueryOptions>,
-    ) -> Result<NodePool, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, &format!("/v1/node/pool/{}", name)),
-            &opts.unwrap_or_default(),
-        );
-        self.send_with_response::<NodePool>(req).await
-    }
-
-    pub async fn create_node_pool(
+    pub async fn create(
         &self,
         node_pool: &NodePool,
         opts: Option<WriteOptions>,
     ) -> Result<(), ClientError> {
         let req = self
+            .client
             .set_request_write_options(
-                self.build_request(Method::PUT, "/v1/node/pool"),
+                self.client.build_request(Method::PUT, "/v1/node/pool"),
                 &opts.unwrap_or_default(),
             )
             .json(node_pool);
-        self.send_without_response(req).await
+        self.client.send_without_response(req).await
     }
 
-    pub async fn delete_node_pool(
-        &self,
-        name: &str,
-        opts: Option<WriteOptions>,
-    ) -> Result<(), ClientError> {
-        let req = self.set_request_write_options(
-            self.build_request(Method::DELETE, &format!("/v1/node/pool/{}", name)),
+    pub async fn delete(&self, name: &str, opts: Option<WriteOptions>) -> Result<(), ClientError> {
+        let req = self.client.set_request_write_options(
+            self.client
+                .build_request(Method::DELETE, &format!("/v1/node/pool/{}", name)),
             &opts.unwrap_or_default(),
         );
-        self.send_without_response(req).await
+        self.client.send_without_response(req).await
+    }
+
+    pub async fn get(
+        &self,
+        name: &str,
+        opts: Option<QueryOptions>,
+    ) -> Result<NodePool, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client
+                .build_request(Method::GET, &format!("/v1/node/pool/{}", name)),
+            &opts.unwrap_or_default(),
+        );
+        self.client.send_with_response::<NodePool>(req).await
+    }
+
+    pub async fn list(&self, opts: Option<QueryOptions>) -> Result<Vec<NodePool>, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(Method::GET, "/v1/node/pools"),
+            &opts.unwrap_or_default(),
+        );
+        self.client.send_with_response::<Vec<NodePool>>(req).await
     }
 }

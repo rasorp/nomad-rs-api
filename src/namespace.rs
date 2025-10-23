@@ -68,45 +68,15 @@ pub struct NamespaceConsulConfiguration {
     pub denied: Option<Vec<String>>,
 }
 
-impl Nomad {
-    /// Get the list of namespaces in the Nomad cluster.
-    ///
-    /// # Arguments
-    /// * `opts` - Optional query options for the request.
-    ///
-    /// # Returns
-    /// A `Result` containing a vector of namespaces or an error if the request
-    /// fails.
-    pub async fn list_namespaces(
-        &self,
-        opts: Option<QueryOptions>,
-    ) -> Result<Vec<Namespace>, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/namespaces"),
-            &opts.unwrap_or_default(),
-        );
-        self.send_with_response::<Vec<Namespace>>(req).await
-    }
+pub struct Endpoint<'a> {
+    client: &'a Nomad,
+}
 
-    /// Get details of a specific namespace by name.
-    ///
-    /// # Arguments
-    /// * `name` - The name of the namespace to retrieve.
-    /// * `opts` - Optional query options for the request.
-    ///
-    /// # Returns
-    /// A `Result` containing the namespace object or an error if the request
-    /// fails.
-    pub async fn get_namespace(
-        &self,
-        name: &str,
-        opts: Option<QueryOptions>,
-    ) -> Result<Namespace, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, &format!("/v1/namespace/{}", name)),
-            &opts.unwrap_or_default(),
-        );
-        self.send_with_response::<Namespace>(req).await
+impl<'a> Endpoint<'a> {
+    /// Create a new `Endpoint` with the given `Nomad` client to interact with
+    /// the namespace endpoints.
+    pub fn new(client: &'a Nomad) -> Self {
+        Self { client }
     }
 
     /// Create a new namespace in the Nomad cluster. This can also be used to
@@ -120,18 +90,19 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing the created namespace or an error if the request
     /// fails.
-    pub async fn create_namespace(
+    pub async fn create(
         &self,
         namespace: &Namespace,
         opts: Option<WriteOptions>,
     ) -> Result<(), ClientError> {
         let req = self
+            .client
             .set_request_write_options(
-                self.build_request(Method::PUT, "/v1/namespace"),
+                self.client.build_request(Method::PUT, "/v1/namespace"),
                 &opts.unwrap_or_default(),
             )
             .json(&namespace);
-        self.send_without_response(req).await
+        self.client.send_without_response(req).await
     }
 
     /// Delete a namespace from the Nomad cluster.
@@ -142,15 +113,50 @@ impl Nomad {
     ///
     /// # Returns
     /// A `Result` indicating success or failure of the deletion operation.
-    pub async fn delete_namespace(
-        &self,
-        name: &str,
-        opts: Option<WriteOptions>,
-    ) -> Result<(), ClientError> {
-        let req = self.set_request_write_options(
-            self.build_request(Method::DELETE, &format!("/v1/namespace/{}", name)),
+    pub async fn delete(&self, name: &str, opts: Option<WriteOptions>) -> Result<(), ClientError> {
+        let req = self.client.set_request_write_options(
+            self.client
+                .build_request(Method::DELETE, &format!("/v1/namespace/{}", name)),
             &opts.unwrap_or_default(),
         );
-        self.send_without_response(req).await
+        self.client.send_without_response(req).await
+    }
+
+    /// Get details of a specific namespace by name.
+    ///
+    /// # Arguments
+    /// * `name` - The name of the namespace to retrieve.
+    /// * `opts` - Optional query options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing the namespace object or an error if the request
+    /// fails.
+    pub async fn get(
+        &self,
+        name: &str,
+        opts: Option<QueryOptions>,
+    ) -> Result<Namespace, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client
+                .build_request(Method::GET, &format!("/v1/namespace/{}", name)),
+            &opts.unwrap_or_default(),
+        );
+        self.client.send_with_response::<Namespace>(req).await
+    }
+
+    /// Get the list of namespaces in the Nomad cluster.
+    ///
+    /// # Arguments
+    /// * `opts` - Optional query options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing a vector of namespaces or an error if the request
+    /// fails.
+    pub async fn list(&self, opts: Option<QueryOptions>) -> Result<Vec<Namespace>, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(Method::GET, "/v1/namespaces"),
+            &opts.unwrap_or_default(),
+        );
+        self.client.send_with_response::<Vec<Namespace>>(req).await
     }
 }

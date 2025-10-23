@@ -32,16 +32,29 @@ pub struct ServiceRegistration {
     pub modify_index: u64,
 }
 
-impl Nomad {
-    /// Get the list of services registered in the Nomad cluster.
+pub struct Endpoint<'a> {
+    client: &'a Nomad,
+}
+
+impl<'a> Endpoint<'a> {
+    /// Create a new `Endpoint` with the given `Nomad` client to interact with
+    /// the service registrations endpoint.
+    pub fn new(client: &'a Nomad) -> Self {
+        Self { client }
+    }
+
+    /// Delete a service registration by its name.
+    ///
+    /// # Arguments
+    /// * `name` - The name of the service to delete.
     ///
     /// # Returns
-    /// A `Result` containing a vector of `ServiceRegistrationList` or an error
-    /// if the request fails.
-    pub async fn get_services(&self) -> Result<Vec<ServiceRegistrationList>, ClientError> {
-        let req = self.build_request(reqwest::Method::GET, "/v1/services");
-        self.send_with_response::<Vec<ServiceRegistrationList>>(req)
-            .await
+    /// A `Result` indicating success or failure of the operation.
+    pub async fn delete(&self, name: &str) -> Result<(), ClientError> {
+        let req = self
+            .client
+            .build_request(reqwest::Method::DELETE, &format!("/v1/service/{}", name));
+        self.client.send_without_response(req).await
     }
 
     /// Get the details of a specific service by its ID.
@@ -52,21 +65,26 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing a vector of `ServiceRegistration` or an error if
     /// the request fails.
-    pub async fn get_service(&self, name: &str) -> Result<Vec<ServiceRegistration>, ClientError> {
-        let req = self.build_request(reqwest::Method::GET, &format!("/v1/service/{}", name));
-        self.send_with_response::<Vec<ServiceRegistration>>(req)
+    pub async fn get(&self, name: &str) -> Result<Vec<ServiceRegistration>, ClientError> {
+        let req = self
+            .client
+            .build_request(reqwest::Method::GET, &format!("/v1/service/{}", name));
+        self.client
+            .send_with_response::<Vec<ServiceRegistration>>(req)
             .await
     }
 
-    /// Delete a service registration by its name.
-    ///
-    /// # Arguments
-    /// * `name` - The name of the service to delete.
+    /// Get the list of services registered in the Nomad cluster.
     ///
     /// # Returns
-    /// A `Result` indicating success or failure of the operation.
-    pub async fn delete_service(&self, name: &str) -> Result<(), ClientError> {
-        let req = self.build_request(reqwest::Method::DELETE, &format!("/v1/service/{}", name));
-        self.send_without_response(req).await
+    /// A `Result` containing a vector of `ServiceRegistrationList` or an error
+    /// if the request fails.
+    pub async fn list(&self) -> Result<Vec<ServiceRegistrationList>, ClientError> {
+        let req = self
+            .client
+            .build_request(reqwest::Method::GET, "/v1/services");
+        self.client
+            .send_with_response::<Vec<ServiceRegistrationList>>(req)
+            .await
     }
 }

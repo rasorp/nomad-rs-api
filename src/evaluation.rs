@@ -139,58 +139,15 @@ pub struct EvaluationDesiredUpdate {
     pub preemptions: u64,
 }
 
-impl Nomad {
-    /// List all allocations for a specific evaluation.
-    ///
-    /// # Arguments
-    /// * `evaluation_id` - The ID of the evaluation.
-    /// * `opts` - Optional query options for the request.
-    ///
-    /// # Returns
-    /// A `Result` containing a vector of `AllocationListStub` objects or an
-    /// error if the request fails.
-    pub async fn evaluation_allocations_list(
-        &self,
-        evaluation_id: &str,
-        opts: Option<QueryOptions>,
-    ) -> Result<Vec<AllocationStub>, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(
-                Method::GET,
-                &format!("/v1/evaluation/{}/allocations", evaluation_id),
-            ),
-            &opts.unwrap_or_default(),
-        );
-        let mut allocations = self.send_with_response::<Vec<AllocationStub>>(req).await?;
+pub struct Endpoint<'a> {
+    client: &'a Nomad,
+}
 
-        // Sort by CreateIndex descending (highest first)
-        allocations.sort_by(|a, b| b.create_index.cmp(&a.create_index));
-
-        Ok(allocations)
-    }
-
-    /// Get information about a specific evaluation.
-    ///
-    /// # Arguments
-    /// * `evaluation_id` - The ID of the evaluation to retrieve.
-    /// * `opts` - Optional query options for the request.
-    ///
-    /// # Returns
-    /// A `Result` containing the `Evaluation` object or an error if the request
-    /// fails.
-    pub async fn evaluation_get(
-        &self,
-        evaluation_id: &str,
-        opts: Option<QueryOptions>,
-    ) -> Result<Evaluation, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(
-                Method::GET,
-                &format!("/v1/evaluation/{}?related=true", evaluation_id),
-            ),
-            &opts.unwrap_or_default(),
-        );
-        self.send_with_response::<Evaluation>(req).await
+impl<'a> Endpoint<'a> {
+    /// Create a new `Endpoint` with the given `Nomad` client to interact with
+    /// the evaluation endpoints.
+    pub fn new(client: &'a Nomad) -> Self {
+        Self { client }
     }
 
     /// Get a count of evaluations.
@@ -201,15 +158,17 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing an `EvalCountResponse` or an error if the request
     /// fails.
-    pub async fn evaluations_count(
+    pub async fn count(
         &self,
         opts: Option<QueryOptions>,
     ) -> Result<EvaluationCountResponse, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/evaluations/count"),
+        let req = self.client.set_request_query_options(
+            self.client
+                .build_request(Method::GET, "/v1/evaluations/count"),
             &opts.unwrap_or_default(),
         );
-        self.send_with_response::<EvaluationCountResponse>(req)
+        self.client
+            .send_with_response::<EvaluationCountResponse>(req)
             .await
     }
 
@@ -223,19 +182,45 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing an `EvaluationDeleteResponse` or an error if the
     /// request fails.
-    pub async fn evaluations_delete(
+    pub async fn delete(
         &self,
         evaluation_delete_request: &EvalualtionDeleteRequest,
         opts: Option<WriteOptions>,
     ) -> Result<EvaluationDeleteResponse, ClientError> {
         let req = self
+            .client
             .set_request_write_options(
-                self.build_request(Method::DELETE, "/v1/evaluations"),
+                self.client.build_request(Method::DELETE, "/v1/evaluations"),
                 &opts.unwrap_or_default(),
             )
             .json(evaluation_delete_request);
-        self.send_with_response::<EvaluationDeleteResponse>(req)
+        self.client
+            .send_with_response::<EvaluationDeleteResponse>(req)
             .await
+    }
+
+    /// Get information about a specific evaluation.
+    ///
+    /// # Arguments
+    /// * `evaluation_id` - The ID of the evaluation to retrieve.
+    /// * `opts` - Optional query options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing the `Evaluation` object or an error if the request
+    /// fails.
+    pub async fn get(
+        &self,
+        evaluation_id: &str,
+        opts: Option<QueryOptions>,
+    ) -> Result<Evaluation, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(
+                Method::GET,
+                &format!("/v1/evaluation/{}?related=true", evaluation_id),
+            ),
+            &opts.unwrap_or_default(),
+        );
+        self.client.send_with_response::<Evaluation>(req).await
     }
 
     /// List all evaluations.
@@ -246,19 +231,51 @@ impl Nomad {
     /// # Returns
     /// A `Result` containing a vector of `Evaluation` objects or an error if
     /// the request fails.
-    pub async fn evaluations_list(
-        &self,
-        opts: Option<QueryOptions>,
-    ) -> Result<Vec<Evaluation>, ClientError> {
-        let req = self.set_request_query_options(
-            self.build_request(Method::GET, "/v1/evaluations"),
+    pub async fn list(&self, opts: Option<QueryOptions>) -> Result<Vec<Evaluation>, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(Method::GET, "/v1/evaluations"),
             &opts.unwrap_or_default(),
         );
-        let mut evaluations = self.send_with_response::<Vec<Evaluation>>(req).await?;
+        let mut evaluations = self
+            .client
+            .send_with_response::<Vec<Evaluation>>(req)
+            .await?;
 
         // Sort by CreateIndex descending (highest first)
         evaluations.sort_by(|a, b| b.create_index.cmp(&a.create_index));
 
         Ok(evaluations)
+    }
+
+    /// List all allocations for a specific evaluation.
+    ///
+    /// # Arguments
+    /// * `evaluation_id` - The ID of the evaluation.
+    /// * `opts` - Optional query options for the request.
+    ///
+    /// # Returns
+    /// A `Result` containing a vector of `AllocationListStub` objects or an
+    /// error if the request fails.
+    pub async fn list_allocations(
+        &self,
+        evaluation_id: &str,
+        opts: Option<QueryOptions>,
+    ) -> Result<Vec<AllocationStub>, ClientError> {
+        let req = self.client.set_request_query_options(
+            self.client.build_request(
+                Method::GET,
+                &format!("/v1/evaluation/{}/allocations", evaluation_id),
+            ),
+            &opts.unwrap_or_default(),
+        );
+        let mut allocations = self
+            .client
+            .send_with_response::<Vec<AllocationStub>>(req)
+            .await?;
+
+        // Sort by CreateIndex descending (highest first)
+        allocations.sort_by(|a, b| b.create_index.cmp(&a.create_index));
+
+        Ok(allocations)
     }
 }
