@@ -3,6 +3,7 @@ pub mod acl_token;
 pub mod allocation;
 pub mod deployment;
 pub mod evaluation;
+pub mod job;
 pub mod namespace;
 pub mod node_pool;
 pub mod option;
@@ -204,6 +205,11 @@ impl Nomad {
         evaluation::Endpoint::new(self)
     }
 
+    /// Get access to the Job endpoint methods.
+    pub fn job(&self) -> job::Endpoint<'_> {
+        job::Endpoint::new(self)
+    }
+
     /// Get access to the Namespace endpoint methods.
     pub fn namespace(&self) -> namespace::Endpoint<'_> {
         namespace::Endpoint::new(self)
@@ -267,4 +273,6 @@ pub enum ClientError {
     ServerError(u16, String),
     #[error("Network error: {0}")]
     NetworkError(String),
+    #[error("Invalid input error: {0}")]
+    InvalidInputError(String),
 }
