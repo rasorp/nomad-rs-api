@@ -5,7 +5,7 @@ license = "Apache-2.0"
 name = "nomad-rs-api"
 readme = "README.md"
 repository = "https://github.com/rasorp/nomad-rs-api"
-version = "0.0.1-alpha.1"
+version = "0.0.1-alpha.2"
 
 [dependencies]
 reqwest = { version = "0.11", features = ["json"] }
