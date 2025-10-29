@@ -961,8 +961,8 @@ pub struct DesiredUpdates {
 #[serde(rename_all = "PascalCase")]
 pub struct JobListDeploymentsRequest {
     #[serde(rename = "JobID")]
-    job_id: String,
-    all: bool,
+    pub job_id: String,
+    pub all: bool,
 }
 
 impl JobListDeploymentsRequest {
@@ -1080,8 +1080,8 @@ impl JobEvaluationForceRequest {
 #[serde(rename_all = "PascalCase")]
 pub struct JobAllocationsListRequest {
     #[serde(rename = "JobID")]
-    job_id: String,
-    all_allocs: bool,
+    pub job_id: String,
+    pub all_allocs: bool,
 }
 
 impl JobAllocationsListRequest {
